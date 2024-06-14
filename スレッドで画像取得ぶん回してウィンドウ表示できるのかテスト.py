@@ -8,6 +8,7 @@ import keyboard
 import numpy as np
 from cv2 import aruco
 
+#already_backup
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1921)  # フレーム幅を設定
@@ -23,6 +24,7 @@ aruco_params = aruco.DetectorParameters()  # ArUcoの検出パラメータを設
 
 fixed_marker_id = 1  # 固定されているマーカーのID
 movable_marker_ids = [2, 3]  # 動くマーカーのIDリスト
+
 
 
 # ArUcoマーカーを検出し、マーカー中心点の座標と長さを取得する関数
