@@ -25,6 +25,7 @@ inner_bag_object_height = 200
 hand_tcp_distance = 160
 marker_slide_dis_x = 30
 marker_slide_dis_y = 30
+now_sequence = "waiting"
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
 cap1.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width + 1)  # フレーム幅を設定
@@ -60,6 +61,7 @@ def get_camera_capture():
 
                 cv2.line(img, marker_center, center, color, 2)
                 cv2.circle(img, marker_center, 5, (0, 0, 255), -1)
+        cv2.putText(img,now_sequence, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 0, 0), 2, cv2.LINE_AA)
         cv2.waitKey(1)
         cv2.imshow("frame", img)
 
@@ -126,7 +128,7 @@ while frame is None:
 
 print(
     "初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
-
+now_sequence = "detect marker"
 # URの姿勢設定
 ur.standard_position = np.array([-145.0, -450.0, marker_detect_height])  # 把持前の基本位置
 ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
@@ -140,7 +142,7 @@ ur.moveL(P_detect, unit_is_DEG=True, _time=5)
 time.sleep(1)
 
 # ロボット動作----------------------------------------------------------------------------------------------------------------
-
+now_sequence = "approach bag mouth"
 #バッグの先端にハンドを持ってくる
 outer_bag_pt = marker_centers.get(outer_bag_marker_id)
 marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
@@ -163,14 +165,16 @@ P_approachXY = np.hstack([P_approach_pos, ur.start_posture])
 ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
 
 #ここでハンド閉
-
+now_sequence = "insert hand"
 P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
 P_approachZ = np.hstack([P_approach_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
+now_sequence = "expand bag"
 #ここでハンド開
 
 #袋内の物体にアプローチ
+now_sequence = "grasp object"
 inner_bag_pt = marker_centers.get(inner_bag_marker_id)
 marker_length_pixel = marker_lengths.get(inner_bag_marker_id)
 x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
