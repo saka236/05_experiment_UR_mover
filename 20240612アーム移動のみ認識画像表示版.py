@@ -19,7 +19,10 @@ outer_bag_marker_id = 1
 inner_bag_marker_id = 2
 marker_length = 20  # mm
 center = (frame_width//2 , frame_height//2)
-center = (frame_width//2 , frame_height//2)
+marker_detect_height = 700
+bag_mouth_height = 300
+inner_bag_object_height = 200
+hand_tcp_distance = 160
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
 cap1.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width + 1)  # フレーム幅を設定
@@ -126,7 +129,7 @@ while frame is None:
 print("初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
 
 # URの姿勢設定
-ur.standard_position = np.array([-145.0, -450.0, 650.0])  # 把持前の基本位置
+ur.standard_position = np.array([-145.0, -450.0, marker_detect_height])  # 把持前の基本位置
 ur.start_posture = np.array([-180,0,0])  # 把持前の基本位置
 
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
@@ -139,18 +142,16 @@ time.sleep(1)
 
 # ロボット動作----------------------------------------------------------------------------------------------------------------
 
-
-#marker_centers, marker_lengths, img = detect_aruco_markers(frame)
+#バッグの先端にアプローチ
 outer_bag_pt = marker_centers.get(outer_bag_marker_id)
 marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
-print(marker_length_pixel)
 x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
                             ur.standard_position[ur.Pos.y] + y_dis_mm,
-                            ur.standard_position[ur.Pos.z] - 100])
-P_wait_posture = ur.start_posture
-P_wait = np.hstack([P_wait_position, P_wait_posture])
+                            ur.standard_position[ur.Pos.z] - marker_detect_height - bag_mouth_height])
+
+P_wait = np.hstack([P_wait_position, ur.start_posture])
 ur.moveL(P_wait, unit_is_DEG=True, _time=2)
 
 time.sleep(1)
@@ -161,8 +162,7 @@ print(marker_length_pixel)
 x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
 
 P_2Pos = P_wait_position + np.array([- x_dis_mm,y_dis_mm,-50])
-P_wait_posture = ur.start_posture
-P_2 = np.hstack([P_2Pos, P_wait_posture])
+P_2 = np.hstack([P_2Pos, ur.start_posture])
 ur.moveL(P_2, unit_is_DEG=True, _time=2)
 
 
