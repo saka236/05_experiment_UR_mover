@@ -18,11 +18,13 @@ frame_height = 1080
 outer_bag_marker_id = 1
 inner_bag_marker_id = 2
 marker_length = 20  # mm
-center = (frame_width//2 , frame_height//2)
+center = (frame_width // 2, frame_height // 2)
 marker_detect_height = 700
 bag_mouth_height = 300
 inner_bag_object_height = 200
 hand_tcp_distance = 160
+marker_slide_dis_x = 30
+marker_slide_dis_y = 30
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
 cap1.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width + 1)  # フレーム幅を設定
@@ -41,7 +43,7 @@ aruco_params = aruco.DetectorParameters()  # ArUcoの検出パラメータを設
 # スレッド処理の定義
 
 def get_camera_capture():
-    global frame,marker_centers,marker_lengths
+    global frame, marker_centers, marker_lengths
     while True:
         # カメラ画像の取得
         _, frame = cap1.read()
@@ -62,19 +64,14 @@ def get_camera_capture():
         cv2.imshow("frame", img)
 
 
-
-
-
-
 # 画像取り込みスレッドの作成
 thread = threading.Thread(target=get_camera_capture, daemon=True)
 thread.start()
 
 
-
 def calculate_distance(pt1, marker_length_pixel):
-    cam_center_pix_x = frame_width/2
-    cam_center_pix_y = frame_height/2
+    cam_center_pix_x = frame_width / 2
+    cam_center_pix_y = frame_height / 2
     pix_x_dis = pt1[0] - cam_center_pix_x
     pix_y_dis = pt1[1] - cam_center_pix_y
     x_dis_mm = (marker_length / marker_length_pixel) * pix_x_dis  # ピクセルからミリメートルに変換
@@ -119,22 +116,24 @@ def check_brightness(frame):
     else:
         return True  # 明るい
 
+
 marker_centers = {}
 marker_lengths = {}
-frame  = None
+frame = None
 while frame is None:
     print("Noneループが回ってます")
     pass
 
-print("初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
+print(
+    "初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
 
 # URの姿勢設定
 ur.standard_position = np.array([-145.0, -450.0, marker_detect_height])  # 把持前の基本位置
-ur.start_posture = np.array([-180,0,0])  # 把持前の基本位置
+ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
 
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
-                            ur.standard_position[ur.Pos.y],
-                            ur.standard_position[ur.Pos.z]])
+                              ur.standard_position[ur.Pos.y],
+                              ur.standard_position[ur.Pos.z]])
 P_detect_posture = ur.start_posture
 P_detect = np.hstack([P_detect_position, P_detect_posture])
 ur.moveL(P_detect, unit_is_DEG=True, _time=5)
@@ -142,29 +141,45 @@ time.sleep(1)
 
 # ロボット動作----------------------------------------------------------------------------------------------------------------
 
-#バッグの先端にアプローチ
+#バッグの先端にハンドを持ってくる
 outer_bag_pt = marker_centers.get(outer_bag_marker_id)
 marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
 x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
                             ur.standard_position[ur.Pos.y] + y_dis_mm,
-                            ur.standard_position[ur.Pos.z] - marker_detect_height - bag_mouth_height])
-
+                            ur.standard_position[ur.Pos.z] - (
+                                    marker_detect_height - bag_mouth_height) + hand_tcp_distance])
 P_wait = np.hstack([P_wait_position, ur.start_posture])
 ur.moveL(P_wait, unit_is_DEG=True, _time=2)
 
-time.sleep(1)
+#バッグの口にＸＹ軸合わせ
+outer_bag_pt = marker_centers.get(outer_bag_marker_id)
+marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
+x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
+P_approachXY_pos = P_wait_position + np.array([- x_dis_mm - marker_slide_dis_x, y_dis_mm + marker_slide_dis_y, 0])
+P_approachXY = np.hstack([P_approach_pos, ur.start_posture])
+ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
+
+#ここでハンド閉
+
+P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
+P_approachZ = np.hstack([P_approach_pos, ur.start_posture])
+ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
+
+#ここでハンド開
+
+#袋内の物体にアプローチ
 inner_bag_pt = marker_centers.get(inner_bag_marker_id)
 marker_length_pixel = marker_lengths.get(inner_bag_marker_id)
-print(marker_length_pixel)
 x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
 
-P_2Pos = P_wait_position + np.array([- x_dis_mm,y_dis_mm,-50])
-P_2 = np.hstack([P_2Pos, ur.start_posture])
-ur.moveL(P_2, unit_is_DEG=True, _time=2)
-
+Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
+                      P_approachZ_pos[ur.Pos.y] + y_dis_mm,
+                      hand_tcp_distance + inner_bag_object_height])
+Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
+ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
 
 time.sleep(5)
 
