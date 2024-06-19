@@ -26,6 +26,7 @@ inner_bag_object_height = 200 #バッグ内のオブジェクトの高さ(使わ
 hand_tcp_distance = 160 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
 marker_slide_dis_x = 30 #マーカーの位置からバッグの口をどんだけずらすか
 marker_slide_dis_y = 30 #マーカーの位置からバッグの口をどんだけずらすか
+experiment_motor_speed = 100 #実験のハンドスピード
 now_sequence = "waiting"
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
@@ -274,28 +275,6 @@ P_approachXY = np.hstack([P_approach_pos, ur.start_posture])
 ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
 
 #ここでハンド閉
-now_sequence = "insert hand"
-P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
-P_approachZ = np.hstack([P_approach_pos, ur.start_posture])
-ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
-
-now_sequence = "expand bag"
-#ここでハンド開
-
-#袋内の物体にアプローチ
-now_sequence = "grasp object"
-inner_bag_pt = marker_centers.get(inner_bag_marker_id)
-marker_length_pixel = marker_lengths.get(inner_bag_marker_id)
-x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
-
-Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
-                      P_approachZ_pos[ur.Pos.y] + y_dis_mm,
-                      hand_tcp_distance + inner_bag_object_height])
-Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
-ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
-
-
-
 #内爪開
 now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
 dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl - inner_finger_dis,experiment_motor_speed)
@@ -309,9 +288,72 @@ while True:
 
     if program_time >= 0.5 and now_velocity == 0:
         now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-
-
+        dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.position_control)
+        dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
         break
+
+now_sequence = "insert hand"
+P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
+P_approachZ = np.hstack([P_approach_pos, ur.start_posture])
+ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
+
+now_sequence = "expand bag"
+#ここで外爪拡張
+now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl + outer_finger_dis,experiment_motor_speed)
+t_p_start = time.time()
+while True:
+    now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
+    program_time = time.time() - t_p_start
+
+    if keyboard.is_pressed("q"):  # qが押されたら終了
+        break
+
+    if program_time >= 0.5 and now_velocity == 0:
+        now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+        dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.position_control)
+        dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
+        break
+
+#ここでハンド開
+now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl - inner_finger_dis,experiment_motor_speed)
+t_p_start = time.time()
+while True:
+    now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
+    program_time = time.time() - t_p_start
+
+    if keyboard.is_pressed("q"):  # qが押されたら終了
+        break
+
+    if program_time >= 0.5 and now_velocity == 0:
+        now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+        dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.position_control)
+        dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
+        break
+
+
+#袋内の物体にアプローチ
+now_sequence = "grasp object"
+inner_bag_pt = marker_centers.get(inner_bag_marker_id)
+marker_length_pixel = marker_lengths.get(inner_bag_marker_id)
+x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
+
+Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
+                      P_approachZ_pos[ur.Pos.y] + y_dis_mm,
+                      hand_tcp_distance + inner_bag_object_height])
+Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
+ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
+
+dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.current_control)
+dxl.write(Motor_ID, dxl.Address.GoalCurrent, 60)
+
+#物体把持完了
+
+
+
+
+
 
 
 
