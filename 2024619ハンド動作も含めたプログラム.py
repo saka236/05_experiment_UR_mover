@@ -350,11 +350,11 @@ dxl.write(Motor_ID, dxl.Address.GoalCurrent, 60)
 
 #物体把持完了
 
-
-
-
-
-
+Pick_up_pos = np.array(ur.standard_position[ur.Pos.x],
+                       ur.standard_position[ur.Pos.y],
+                       ur.standard_position[ur.Pos.z])
+Pick_up_p = np.hstack([Pick_up_pos, ur.start_posture])
+ur.moveL(Pick_up_p, unit_is_DEG=True, _time=2)
 
 
 ur.exit()
