@@ -120,6 +120,8 @@ def check_brightness(frame):
         return True  # 明るい
 
 
+
+
 marker_centers = {}
 marker_lengths = {}
 frame = None
@@ -127,8 +129,114 @@ while frame is None:
     print("Noneループが回ってます")
     pass
 
-print(
-    "初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
+# ハンド初期キャリブレーション------------------------------------------------------------------------------------------------------
+handspeed = 100
+
+# dynamixel初期設定
+dxl = myDynamixel.Dxlfunc()  # インスタンス化
+MotorNum = dxl.init('COM3', baudrate=4000000)  # COM通信容量を指定
+print(MotorNum)
+
+if MotorNum > 0:
+    print("dynamixel初期化成功")
+else:
+    print("初期化失敗")
+Motor_ID = 1  # モーターIDを設定
+
+dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)  # モーターのトルクをオフにする(初期化)
+dxl.write(Motor_ID, dxl.Address.TorqueEnable, True)  # モーターのトルクをオンにする
+
+frame = None
+while frame is None:
+    print("Noneループが回ってます")
+    pass
+
+dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.velocity_control)  # モーターを速度コントロール
+
+print("キャリブレーションを実施")
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # 外側のハンドをハンドを閉じる(初期化)
+
+while True:
+    current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
+    # print(current)
+    if current < -600:
+        print("外爪が閉じました")
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        break
+
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 内側のハンドをハンドを閉じる(初期化)
+
+while True:
+    ret1, img1 = cap1.read()
+    bright_check = check_brightness(img1)
+
+    if not bright_check:
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        print("内爪が閉じました")
+        all_hand_close_posision = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+        break
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+all_hand_close_pos = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+
+time.sleep(0.5)
+
+print("外爪を開いて距離を取得します")
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 外側のハンドをハンドを開く(初期化)
+
+while True:
+    current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
+    if current > 600:
+        print("外爪が開きました")
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        break
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+
+outer_hand_open_pos = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+
+outer_finger_dis = outer_hand_open_pos - all_hand_close_pos
+print(f"外爪の開閉移動距離は{outer_finger_dis}です")
+print("初期位置に移行")
+# 再度初期位置に移行
+
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # 外側のハンドをハンドを閉じる(初期化)
+
+while True:
+    current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
+    if current < -600:
+        print("外爪が閉じました")
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        break
+
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 内側のハンドをハンドを閉じる(初期化)
+inner_finger_open_position = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+while True:
+    bright_check = check_brightness(frame)
+
+    if not bright_check:
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        print("内爪が閉じました")
+        break
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+inner_finger_close_position = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+inner_finger_dis = inner_finger_close_position - inner_finger_open_position
+print(f"内爪の開閉移動距離は{inner_finger_dis}です")
+# カメラを使用するため内爪を開く
+dxl.PosCnt_Vbase(Motor_ID, inner_finger_open_position, handspeed)
+
+print("初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
 now_sequence = "detect marker"
 # URの姿勢設定
 ur.standard_position = np.array([-145.0, -450.0, marker_detect_height])  # 把持前の基本位置
@@ -185,6 +293,26 @@ Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
                       hand_tcp_distance + inner_bag_object_height])
 Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
 ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
+
+
+
+#内爪開
+now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl - inner_finger_dis,experiment_motor_speed)
+t_p_start = time.time()
+while True:
+    now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
+    program_time = time.time() - t_p_start
+
+    if keyboard.is_pressed("q"):  # qが押されたら終了
+        break
+
+    if program_time >= 0.5 and now_velocity == 0:
+        now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+
+
+        break
+
 
 
 ur.exit()
