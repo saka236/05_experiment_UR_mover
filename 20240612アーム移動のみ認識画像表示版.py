@@ -162,13 +162,13 @@ marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
 x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_approachXY_pos = P_wait_position + np.array([- x_dis_mm - marker_slide_dis_x, y_dis_mm + marker_slide_dis_y, 0])
-P_approachXY = np.hstack([P_approach_pos, ur.start_posture])
+P_approachXY = np.hstack([P_approachXY_pos, ur.start_posture])
 ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
 
 #ここでハンド閉
 now_sequence = "insert hand"
 P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
-P_approachZ = np.hstack([P_approach_pos, ur.start_posture])
+P_approachZ = np.hstack([P_approachZ_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
 now_sequence = "expand bag"
