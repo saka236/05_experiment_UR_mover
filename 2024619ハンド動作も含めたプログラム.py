@@ -265,8 +265,7 @@ x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
                             ur.standard_position[ur.Pos.y] + y_dis_mm,
-                            ur.standard_position[ur.Pos.z] - (
-                                    marker_detect_height - bag_mouth_height) + hand_tcp_distance])
+                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance])
 P_wait = np.hstack([P_wait_position, ur.start_posture])
 ur.moveL(P_wait, unit_is_DEG=True, _time=2)
 
@@ -274,8 +273,10 @@ ur.moveL(P_wait, unit_is_DEG=True, _time=2)
 outer_bag_pt = marker_centers.get(outer_bag_marker_id)
 marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
 x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
-
-P_approachXY_pos = P_wait_position + np.array([- x_dis_mm - marker_slide_dis_x, y_dis_mm + marker_slide_dis_y, 0])
+P_approachXY_pos = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm - marker_slide_dis_x,
+                            ur.standard_position[ur.Pos.y] + y_dis_mm + marker_slide_dis_y,
+                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance])
+#P_approachXY_pos = P_wait_position + np.array([- x_dis_mm - marker_slide_dis_x, y_dis_mm + marker_slide_dis_y, 0])
 P_approachXY = np.hstack([P_approachXY_pos, ur.start_posture])
 ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
 
@@ -298,7 +299,7 @@ while True:
         break
 
 now_sequence = "insert hand"
-P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -300])
+P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -50])
 P_approachZ = np.hstack([P_approachZ_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
