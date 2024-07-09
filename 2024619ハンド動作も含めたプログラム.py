@@ -269,7 +269,7 @@ P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
 P_wait = np.hstack([P_wait_position, ur.start_posture])
 ur.moveL(P_wait, unit_is_DEG=True, _time=2)
 
-#バッグの口にＸＹ軸合わせ
+#バッグの口にＸＹ軸合わせ マーカースライド分だけ移動
 outer_bag_pt = marker_centers.get(outer_bag_marker_id)
 marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
 x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
@@ -299,7 +299,9 @@ while True:
         break
 
 now_sequence = "insert hand"
-P_approachZ_pos = P_approachXY_pos + np.array([0, 0, -50])
+P_approachZ_pos = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm - marker_slide_dis_x,
+                            ur.standard_position[ur.Pos.y] + y_dis_mm + marker_slide_dis_y,
+                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance - 50])
 P_approachZ = np.hstack([P_approachZ_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
@@ -347,7 +349,7 @@ x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
 
 Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
                       P_approachZ_pos[ur.Pos.y] + y_dis_mm,
-                      hand_tcp_distance + inner_bag_object_height])
+                      hand_tcp_distance + inner_bag_object_height + 10])
 Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
 ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
 
