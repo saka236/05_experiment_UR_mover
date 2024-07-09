@@ -27,7 +27,7 @@ inner_bag_object_height = 200 #バッグ内のオブジェクトの高さ(使わ
 hand_tcp_distance = 160 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
 marker_slide_dis_x = 0 #マーカーの位置からバッグの口をどんだけずらすか
 marker_slide_dis_y = 0 #マーカーの位置からバッグの口をどんだけずらすか
-experiment_motor_speed = 100 #実験のハンドスピード
+experiment_motor_speed = 80 #実験のハンドスピード
 now_sequence = "waiting"
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 cap1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # カメラを開く
@@ -37,7 +37,7 @@ cap1.set(cv2.CAP_PROP_FPS, 60)  # FPSを設定
 cap1.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # オート フォーカスをオフ
 cap1.set(cv2.CAP_PROP_FOCUS, 0)  # フォーカスを設定
 cap1.set(cv2.CAP_PROP_ZOOM, 0)  # ズームを設定
-cap1.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)  # 明るさを設定0
+cap1.set(cv2.CAP_PROP_AUTO_EXPOSURE, 100)  # 明るさを設定0
 # ArUcoのパラメータを設定
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)  # ArUco辞書を取得
 aruco_params = aruco.DetectorParameters()  # ArUcoの検出パラメータを設定
