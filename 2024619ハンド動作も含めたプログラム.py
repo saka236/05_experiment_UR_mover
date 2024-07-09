@@ -282,8 +282,8 @@ ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
 
 #ここでハンド閉
 #内爪開
-now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl - inner_finger_dis,experiment_motor_speed)
+now_pos_1 = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.PosCnt_Vbase(Motor_ID,now_pos_1 - inner_finger_dis,experiment_motor_speed)
 t_p_start = time.time()
 while True:
     now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
