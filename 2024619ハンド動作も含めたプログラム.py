@@ -22,11 +22,11 @@ marker_length = 20  # mm
 center = (frame_width // 2, frame_height // 2)
 
 marker_detect_height = 700 #マーカーを読み取る高さ
-bag_mouth_height = 300 #バッグの高さ
+bag_mouth_height = 200 #バッグの高さ
 inner_bag_object_height = 200 #バッグ内のオブジェクトの高さ(使わなくてもいい？)
 hand_tcp_distance = 160 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
-marker_slide_dis_x = 0 #マーカーの位置からバッグの口をどんだけずらすか
-marker_slide_dis_y = 0 #マーカーの位置からバッグの口をどんだけずらすか
+marker_slide_dis_x = 30 #マーカーの位置からバッグの口をどんだけずらすか
+marker_slide_dis_y = 70 #マーカーの位置からバッグの口をどんだけずらすか
 experiment_motor_speed = 80 #実験のハンドスピード
 now_sequence = "waiting"
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
@@ -265,25 +265,20 @@ x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
                             ur.standard_position[ur.Pos.y] + y_dis_mm,
-                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance])
+                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance +50])
 P_wait = np.hstack([P_wait_position, ur.start_posture])
-ur.moveL(P_wait, unit_is_DEG=True, _time=2)
+ur.moveL(P_wait, unit_is_DEG=True, _time=5)
 
 #バッグの口にＸＹ軸合わせ マーカースライド分だけ移動
-outer_bag_pt = marker_centers.get(outer_bag_marker_id)
-marker_length_pixel = marker_lengths.get(outer_bag_marker_id)
-x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
-P_approachXY_pos = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm - marker_slide_dis_x,
-                            ur.standard_position[ur.Pos.y] + y_dis_mm + marker_slide_dis_y,
-                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance])
+P_approachXY_pos = P_wait_position + np.array([- marker_slide_dis_x,-marker_slide_dis_y,0])
 #P_approachXY_pos = P_wait_position + np.array([- x_dis_mm - marker_slide_dis_x, y_dis_mm + marker_slide_dis_y, 0])
 P_approachXY = np.hstack([P_approachXY_pos, ur.start_posture])
-ur.moveL(P_approachXY, unit_is_DEG=True, _time=2)
+ur.moveL(P_approachXY, unit_is_DEG=True, _time=3)
 
 #ここでハンド閉
 #内爪開
-now_pos_1 = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-dxl.PosCnt_Vbase(Motor_ID,now_pos_1 + inner_finger_dis,experiment_motor_speed)
+now_pos = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.PosCnt_Vbase(Motor_ID,now_pos + inner_finger_dis,experiment_motor_speed)
 t_p_start = time.time()
 while True:
     now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
@@ -299,9 +294,7 @@ while True:
         break
 
 now_sequence = "insert hand"
-P_approachZ_pos = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm - marker_slide_dis_x,
-                            ur.standard_position[ur.Pos.y] + y_dis_mm + marker_slide_dis_y,
-                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance - 50])
+P_approachZ_pos = P_approachXY_pos + np.array([0,0,- 50])
 P_approachZ = np.hstack([P_approachZ_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
@@ -340,18 +333,19 @@ while True:
         dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
         break
 
-
 #袋内の物体にアプローチ
 now_sequence = "grasp object"
 inner_bag_pt = marker_centers.get(inner_bag_marker_id)
+print(inner_bag_pt)
 marker_length_pixel = marker_lengths.get(inner_bag_marker_id)
+print(marker_length_pixel)
 x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
 
 Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
                       P_approachZ_pos[ur.Pos.y] + y_dis_mm,
-                      hand_tcp_distance + inner_bag_object_height + 10])
+                      hand_tcp_distance + inner_bag_object_height +50])
 Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
-ur.moveL(Grasp_p, unit_is_DEG=True, _time=2)
+ur.moveL(Grasp_P, unit_is_DEG=True, _time=2)
 
 dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.current_control)
 dxl.write(Motor_ID, dxl.Address.GoalCurrent, 60)
