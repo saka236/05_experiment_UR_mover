@@ -1,4 +1,5 @@
 import math
+import os
 import sys
 import threading
 import time
@@ -8,6 +9,7 @@ import keyboard
 import numpy as np
 from cv2 import aruco
 import myDynamixel
+from myNowTime import get_now
 
 from sub_code.myUniversalRobot_v2 import myUniversalRobot
 
@@ -22,11 +24,11 @@ marker_length = 20  # mm
 center = (frame_width // 2, frame_height // 2)
 
 marker_detect_height = 700 #マーカーを読み取る高さ
-bag_mouth_height = 200 #バッグの高さ
+bag_mouth_height = 150 #バッグの高さ
 inner_bag_object_height = 200 #バッグ内のオブジェクトの高さ(使わなくてもいい？)
-hand_tcp_distance = 160 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
-marker_slide_dis_x = 30 #マーカーの位置からバッグの口をどんだけずらすか
-marker_slide_dis_y = 70 #マーカーの位置からバッグの口をどんだけずらすか
+hand_tcp_distance = 260 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+marker_slide_dis_x = 0 #マーカーの位置からバッグの口をどんだけずらすか
+marker_slide_dis_y = 50 #マーカーの位置からバッグの口をどんだけずらすか
 experiment_motor_speed = 80 #実験のハンドスピード
 now_sequence = "waiting"
 # カメラ,マーカー初期設定ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
@@ -41,30 +43,31 @@ cap1.set(cv2.CAP_PROP_AUTO_EXPOSURE, 100)  # 明るさを設定0
 # ArUcoのパラメータを設定
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)  # ArUco辞書を取得
 aruco_params = aruco.DetectorParameters()  # ArUcoの検出パラメータを設定
-
+img_save = []
 
 # -----関数定義-------
 # スレッド処理の定義
 
 def get_camera_capture():
-    global frame, marker_centers, marker_lengths
+    global frame, marker_centers, marker_lengths,img_save
     while True:
         # カメラ画像の取得
         _, frame = cap1.read()
+        img_save.append(frame.copy())
         marker_centers, marker_lengths, img = detect_aruco_markers(frame.copy())
-        if marker_centers:
-            for marker_id, marker_center in marker_centers.items():
-                # マーカーの中央とカメラの中央を結ぶ線を描画
-                if marker_id == outer_bag_marker_id:
-                    color = (0, 0, 255)  # 赤色
-                elif marker_id == inner_bag_marker_id:
-                    color = (255, 0, 0)  # 青色
-                else:
-                    color = (0, 255, 0)  # その他の色（緑色）
-
-                cv2.line(img, marker_center, center, color, 2)
-                cv2.circle(img, marker_center, 5, (0, 0, 255), -1)
-        cv2.putText(img,now_sequence, (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 5, cv2.LINE_AA)
+        #if marker_centers:
+        #    for marker_id, marker_center in marker_centers.items():
+        #        # マーカーの中央とカメラの中央を結ぶ線を描画
+        #        if marker_id == outer_bag_marker_id:
+        #            color = (0, 0, 255)  # 赤色
+        #        elif marker_id == inner_bag_marker_id:
+        #            color = (255, 0, 0)  # 青色
+        #        else:
+        #            color = (0, 255, 0)  # その他の色（緑色）
+#
+        #        cv2.line(img, marker_center, center, color, 2)
+        #        cv2.circle(img, marker_center, 5, (0, 0, 255), -1)
+        #cv2.putText(img,now_sequence, (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 5, (255, 255, 255), 5, cv2.LINE_AA)
         cv2.waitKey(1)
         cv2.imshow("frame", img)
 
@@ -114,6 +117,7 @@ def check_brightness(frame):
 
     # 閾値を設定(暗いと判断する輝度値)　ピクセルの輝度　０から255
     brightness_threshold = 30
+    print(mean_brightness)
 
     # 平均輝度値が閾値より小さければ真っ暗と判断
     if mean_brightness < brightness_threshold:
@@ -128,7 +132,7 @@ marker_centers = {}
 marker_lengths = {}
 frame = None
 while frame is None:
-    print("Noneループが回ってます")
+    #print("Noneループが回ってます")
     pass
 
 # ハンド初期キャリブレーション------------------------------------------------------------------------------------------------------
@@ -148,10 +152,7 @@ Motor_ID = 1  # モーターIDを設定
 dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)  # モーターのトルクをオフにする(初期化)
 dxl.write(Motor_ID, dxl.Address.TorqueEnable, True)  # モーターのトルクをオンにする
 
-frame = None
-while frame is None:
-    print("Noneループが回ってます")
-    pass
+
 
 dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.velocity_control)  # モーターを速度コントロール
 
@@ -162,7 +163,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # 外側のハンド�
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
     # print(current)
-    if current < -400:
+    if current < -350:
         print("外爪が閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
@@ -194,7 +195,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 外側のハンド�
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current > 400:
+    if current > 350:
         print("外爪が開きました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
@@ -213,7 +214,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # 外側のハンド�
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current < -400:
+    if current < -350:
         print("外爪が閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
@@ -221,8 +222,10 @@ while True:
     elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
         dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
         break
-dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 内側のハンドをハンドを閉じる(初期化)
 inner_finger_open_position = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # 内側のハンドをハンドを閉じる(初期化)
+
+
 while True:
     bright_check = check_brightness(frame)
 
@@ -236,6 +239,7 @@ while True:
 inner_finger_close_position = dxl.read(Motor_ID, dxl.Address.PresentPosition)
 inner_finger_dis = inner_finger_close_position - inner_finger_open_position
 print(f"内爪の開閉移動距離は{inner_finger_dis}です")
+inner_finger_dis = 1800
 # カメラを使用するため内爪を開く
 dxl.PosCnt_Vbase(Motor_ID, inner_finger_open_position, handspeed)
 
@@ -253,7 +257,7 @@ P_detect_position = np.array([ur.standard_position[ur.Pos.x],
                               ur.standard_position[ur.Pos.z]])
 P_detect_posture = ur.start_posture
 P_detect = np.hstack([P_detect_position, P_detect_posture])
-ur.moveL(P_detect, unit_is_DEG=True, _time=5)
+ur.moveL(P_detect, unit_is_DEG=True, _time=2)
 time.sleep(1)
 
 # ロボット動作----------------------------------------------------------------------------------------------------------------
@@ -265,7 +269,7 @@ x_dis_mm, y_dis_mm = calculate_distance(outer_bag_pt, marker_length_pixel)
 
 P_wait_position = np.array([ur.standard_position[ur.Pos.x] - x_dis_mm,
                             ur.standard_position[ur.Pos.y] + y_dis_mm,
-                            ur.standard_position[ur.Pos.z] - (marker_detect_height - bag_mouth_height) + hand_tcp_distance +50])
+                            hand_tcp_distance + bag_mouth_height + 30])
 P_wait = np.hstack([P_wait_position, ur.start_posture])
 ur.moveL(P_wait, unit_is_DEG=True, _time=5)
 
@@ -294,7 +298,7 @@ while True:
         break
 
 now_sequence = "insert hand"
-P_approachZ_pos = P_approachXY_pos + np.array([0,0,- 50])
+P_approachZ_pos = P_approachXY_pos + np.array([0,0,- 110])
 P_approachZ = np.hstack([P_approachZ_pos, ur.start_posture])
 ur.moveL(P_approachZ, unit_is_DEG=True, _time=2)
 
@@ -343,7 +347,7 @@ x_dis_mm, y_dis_mm = calculate_distance(inner_bag_pt, marker_length_pixel)
 
 Grasp_Pos = np.array([P_approachZ_pos[ur.Pos.x] - x_dis_mm,
                       P_approachZ_pos[ur.Pos.y] + y_dis_mm,
-                      hand_tcp_distance + inner_bag_object_height +50])
+                      270])
 Grasp_P = np.hstack([Grasp_Pos, ur.start_posture])
 ur.moveL(Grasp_P, unit_is_DEG=True, _time=2)
 
@@ -351,13 +355,18 @@ dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.current_control)
 dxl.write(Motor_ID, dxl.Address.GoalCurrent, 60)
 
 #物体把持完了
+time.sleep(3)
 
-Pick_up_pos = np.array([ur.standard_position[ur.Pos.x],
-                        ur.standard_position[ur.Pos.y],
-                        ur.standard_position[ur.Pos.z]])
+Pick_up_pos = Grasp_Pos + np.array([0,0,400])
 Pick_up_p = np.hstack([Pick_up_pos, ur.start_posture])
 ur.moveL(Pick_up_p, unit_is_DEG=True, _time=2)
+save_path = "img/"+get_now()
+os.mkdir(save_path)
+save_num = len(img_save)
 
+for i in range (save_num):
+    img_path = save_path + "/img_" + str().zfill(6) + ".jpg"
+    cv2.imwrite(img_path,img_save[i])
 
 ur.exit()
 sys.exit()
