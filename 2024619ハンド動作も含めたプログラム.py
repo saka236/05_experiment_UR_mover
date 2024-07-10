@@ -77,6 +77,7 @@ thread = threading.Thread(target=get_camera_capture, daemon=True)
 thread.start()
 
 
+
 def calculate_distance(pt1, marker_length_pixel):
     cam_center_pix_x = frame_width / 2
     cam_center_pix_y = frame_height / 2
@@ -138,10 +139,15 @@ while frame is None:
 # ハンド初期キャリブレーション------------------------------------------------------------------------------------------------------
 handspeed = 100
 
+
+
+
 # dynamixel初期設定
 dxl = myDynamixel.Dxlfunc()  # インスタンス化
 MotorNum = dxl.init('COM3', baudrate=4000000)  # COM通信容量を指定
 print(MotorNum)
+
+
 
 if MotorNum > 0:
     print("dynamixel初期化成功")
@@ -365,7 +371,7 @@ os.mkdir(save_path)
 save_num = len(img_save)
 
 for i in range (save_num):
-    img_path = save_path + "/img_" + str().zfill(6) + ".jpg"
+    img_path = save_path + "/img_" + str(i).zfill(6) + ".jpg"
     cv2.imwrite(img_path,img_save[i])
 
 ur.exit()
