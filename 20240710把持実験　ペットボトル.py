@@ -20,9 +20,9 @@ ur = myUniversalRobot()
 
 hand_tcp_distance = 266 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
 handspeed = 50
-handcurrent = 100
-G_distance = 200
-floor_distance = 0
+handcurrent = 350
+G_distance = 250
+floor_distance = 180
 
 
 # dynamixel初期設定
@@ -36,7 +36,6 @@ if MotorNum > 0:
 else:
     print("初期化失敗")
 Motor_ID = 1  # モーターIDを設定
-
 ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
 ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + G_distance])
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
