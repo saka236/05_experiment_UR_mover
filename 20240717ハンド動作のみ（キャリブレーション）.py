@@ -140,7 +140,7 @@ handspeed = 100
 
 # dynamixel初期設定
 dxl = myDynamixel.Dxlfunc()  # インスタンス化
-MotorNum = dxl.init('COM7', baudrate=4000000)  # COM通信容量を指定
+MotorNum = dxl.init('COM3', baudrate=4000000)  # COM通信容量を指定
 print(MotorNum)
 
 
@@ -247,3 +247,4 @@ dxl.PosCnt_Vbase(Motor_ID, inner_finger_open_position, handspeed)
 
 print("初期セットアップ完了")  # --------------------------------------------------------------------------------------------------------------------
 
+sys.exit()
