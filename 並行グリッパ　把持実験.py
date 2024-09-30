@@ -16,12 +16,11 @@ ur = myUniversalRobot()
 #事前設定項目
 
 
-hand_tcp_distance = 170 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+hand_tcp_distance = 175 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
 handspeed = 200
 handcurrent = 200
 G_distance = 250
-floor_distance = 0
-hand_tcp_distance = 173 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+floor_distance = 5
 bag_hight = 50
 
 # dynamixel初期設定
@@ -111,7 +110,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # ハンド閉じる
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current < -80:
+    if current < -50:
         print("ハンドが閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
