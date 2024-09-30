@@ -18,11 +18,12 @@ ur = myUniversalRobot()
 #事前設定項目
 
 
-hand_tcp_distance = 266 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
-handspeed = 50
+hand_tcp_distance = 175 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+handspeed = 200
 handcurrent = 200
-G_distance = 200
-floor_distance = 0
+G_distance = 250
+floor_distance = 5
+bag_hight = 150
 
 
 # dynamixel初期設定
@@ -50,13 +51,12 @@ dxl.write(Motor_ID, dxl.Address.TorqueEnable, True)  # モーターのトルク�
 
 dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.velocity_control)  # モーターを速度コントロール
 
-dxl.write(Motor_ID, dxl.Address.GoalVelocity, -100)  # 内爪を開く
-
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # ハンド閉じる
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current < -350:
-        print("外爪が閉じ内爪が開きました")
+    if current < -100:
+        print("ハンドが閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
 
@@ -64,55 +64,40 @@ while True:
         dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
         break
 
-#inner_finger_dis = 1800
-#now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-#dxl.PosCnt_Vbase(Motor_ID,now_pos_dxl - inner_finger_dis,100)
-#t_p_start = time.time()
-#while True:
-#    now_velocity = dxl.read(Motor_ID, dxl.Address.PresentVelocity)
-#    program_time = time.time() - t_p_start
-#
-#    if keyboard.is_pressed("q"):  # qが押されたら終了
-#        break
-#
-#    if program_time >= 0.5 and now_velocity == 0:
-#        now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-#        dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.position_control)
-#        dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
-#        break
-
-#物体にアプローチ
+#袋の口にアプローチ
 ur.start_posture = np.array([-180, 0, 0])
-ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + floor_distance])
+ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + floor_distance + bag_hight])
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
                               ur.standard_position[ur.Pos.y],
                               ur.standard_position[ur.Pos.z]])
 P_detect = np.hstack([P_detect_position, ur.start_posture])
 ur.moveL(P_detect, unit_is_DEG=True, _time=3)
 
-inhand_open_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
+hand_close_pos = dxl.read(Motor_ID, dxl.Address.PresentPosition)
 
-#ハンドを閉じる
+#ハンドを開く
 
 dxl.CurrentCnt_Vbase(Motor_ID,handcurrent,handspeed)
 
 time.sleep(2)
-now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)
-dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.position_control)
-dxl.write(Motor_ID, dxl.Address.GoalPosition, now_pos_dxl)
 
-#持ち上げる
-ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
-ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + G_distance])
-P_detect_position = np.array([ur.standard_position[ur.Pos.x],
-                              ur.standard_position[ur.Pos.y],
-                              ur.standard_position[ur.Pos.z]])
-P_detect = np.hstack([P_detect_position, ur.start_posture])
-ur.moveL(P_detect, unit_is_DEG=True, _time=5)
+dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.velocity_control)  # モーターを速度コントロール
 
-time.sleep(2)
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, handspeed)  # ハンド閉じる
 
-#置く
+while True:
+    now_pos_dxl = dxl.read(Motor_ID, dxl.Address.PresentPosition)  # トルク読み取り
+    if now_pos_dxl- hand_close_pos > 42800:
+        print("ハンドが開きました")
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        break
+
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+
+
+#物体にアプローチ
 ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
 ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + floor_distance])
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
@@ -121,38 +106,31 @@ P_detect_position = np.array([ur.standard_position[ur.Pos.x],
 P_detect = np.hstack([P_detect_position, ur.start_posture])
 ur.moveL(P_detect, unit_is_DEG=True, _time=5)
 
-dxl.CurrentCnt_Vbase(Motor_ID,handcurrent,handspeed)
-time.sleep(8)
+#把持
+dxl.Change_OperatingMode(Motor_ID, dxl.operating_mode.velocity_control)  # モーターを速度コントロール
+
+dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # ハンド閉じる
+
+while True:
+    current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
+    if current < -200:
+        print("ハンドが閉じました")
+        dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
+        break
+
+    elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
+        dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
+        break
+
+#持ち上げる
 ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
-ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + G_distance])
+ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + floor_distance + G_distance])
 P_detect_position = np.array([ur.standard_position[ur.Pos.x],
                               ur.standard_position[ur.Pos.y],
                               ur.standard_position[ur.Pos.z]])
 P_detect = np.hstack([P_detect_position, ur.start_posture])
 ur.moveL(P_detect, unit_is_DEG=True, _time=5)
 
-time.sleep(2)
-
-#置く
-ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
-ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + floor_distance +100])
-P_detect_position = np.array([ur.standard_position[ur.Pos.x],
-                              ur.standard_position[ur.Pos.y],
-                              ur.standard_position[ur.Pos.z]])
-P_detect = np.hstack([P_detect_position, ur.start_posture])
-ur.moveL(P_detect, unit_is_DEG=True, _time=5)
-
-#ハンド開
-dxl.PosCnt_Vbase(Motor_ID,inhand_open_pos_dxl,handspeed)
-time.sleep(8)
-#元の位置に戻す
-ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
-ur.standard_position = np.array([-145.0, -450.0, hand_tcp_distance + G_distance])
-P_detect_position = np.array([ur.standard_position[ur.Pos.x],
-                              ur.standard_position[ur.Pos.y],
-                              ur.standard_position[ur.Pos.z]])
-P_detect = np.hstack([P_detect_position, ur.start_posture])
-ur.moveL(P_detect, unit_is_DEG=True, _time=5)
 
 dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)  # モーターのトルクをオフにする(初期化)
 
