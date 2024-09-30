@@ -3,7 +3,6 @@ import os
 import sys
 import threading
 import time
-
 import cv2
 import keyboard
 import numpy as np
@@ -18,13 +17,13 @@ ur = myUniversalRobot()
 #事前設定項目
 
 
-hand_tcp_distance = 175 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+hand_tcp_distance = 170 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
 handspeed = 200
 handcurrent = 200
 G_distance = 250
-floor_distance = 5
-bag_hight = 150
-
+floor_distance = 0
+hand_tcp_distance = 173 #ハンドの先端とTCPのY座標の差(ハンドの長さ)
+bag_hight = 50
 
 # dynamixel初期設定
 dxl = myDynamixel.Dxlfunc()  # インスタンス化
@@ -55,7 +54,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # ハンド閉じる
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current < -100:
+    if current < -80:
         print("ハンドが閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
@@ -113,7 +112,7 @@ dxl.write(Motor_ID, dxl.Address.GoalVelocity, -handspeed)  # ハンド閉じる
 
 while True:
     current = dxl.read(Motor_ID, dxl.Address.PresentCurrent)  # トルク読み取り
-    if current < -200:
+    if current < -80:
         print("ハンドが閉じました")
         dxl.write(Motor_ID, dxl.Address.GoalVelocity, 0)
         break
@@ -121,6 +120,7 @@ while True:
     elif keyboard.is_pressed("q"):  # 3を押すとハンドを開いてプログラムを終了
         dxl.write(Motor_ID, dxl.Address.TorqueEnable, False)
         break
+
 
 #持ち上げる
 ur.start_posture = np.array([-180, 0, 0])  # 把持前の基本位置
