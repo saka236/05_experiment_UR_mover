@@ -140,7 +140,7 @@ handspeed = 100
 
 # dynamixel初期設定
 dxl = myDynamixel.Dxlfunc()  # インスタンス化
-MotorNum = dxl.init('COM3', baudrate=4000000)  # COM通信容量を指定
+MotorNum = dxl.init('COM4', baudrate=4000000)  # COM通信容量を指定
 print(MotorNum)
 
 
