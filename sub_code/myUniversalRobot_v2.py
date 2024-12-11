@@ -37,7 +37,7 @@ class myUniversalRobot:
 
     def __init__(self):
         # クラスの初期化メソッド
-        ip = '192.168.11.11'  # ロボットのIPアドレス
+        ip = '192.168.11.3'  # ロボットのIPアドレス
         port = 30001  # ロボットとの通信に使用するポート番号
         self.s = socket(AF_INET, SOCK_STREAM)  # ソケットを作成
         self.s.settimeout(2)  # ソケットのタイムアウトを設定
