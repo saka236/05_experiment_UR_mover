@@ -4,10 +4,8 @@ import sys
 import threading
 import time
 
-import cv2
 import keyboard
 import numpy as np
-from cv2 import aruco
 import myDynamixel
 from myNowTime import get_now
 
