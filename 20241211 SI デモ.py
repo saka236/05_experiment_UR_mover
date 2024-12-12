@@ -15,7 +15,7 @@ from myNowTime import get_now
 #事前設定項目
 
 
-handspeed = 80
+handspeed = 100
 handcurrent = 200
 inner_finger_dis = 1600
 outer_finger_dis = 6700
